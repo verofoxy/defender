@@ -1,0 +1,73 @@
+/*
+** EPITECH PROJECT, 2019
+** MUL_my_defender_2019
+** File description:
+** path finding.c
+*/
+
+#include "game_object.h"
+#include "map.h"
+#include "scene.h"
+#include "pathfiling.h"
+#include "stdbool.h"
+
+int zone_valid(map_t *map, game_object *obj, sfVector2i s_point, sfClock *clock)
+{
+    float total_time = (obj->entity->stat->move_speed >= 120) ? 0.7 : 1.0;
+
+    if (is_brown(map->str_map[s_point.y][s_point.x + 1]) == 1)  {
+        change_move(obj, "right");
+    } else if (s_point.y > 0
+    && is_brown(map->str_map[s_point.y - 1][s_point.x]) == 1) {
+        obj->entity->is_up = true;
+        change_move(obj, "top");
+    } else if (s_point.x > 0
+    && is_brown(map->str_map[s_point.y][s_point.x - 1]) == 1) {
+        change_move(obj, "left");
+    } else if (s_point.y < 18
+    && is_brown(map->str_map[s_point.y + 1][s_point.x]) == 1) {
+        change_move(obj, "down");
+    } else {
+        change_move(obj, "down");
+    }
+    if (obj->entity->is_up == true) {
+        change_move(obj, "top");
+        if (obj->entity->curr_time_top_offset <= total_time) {
+            obj->entity->curr_time_top_offset +=
+            sfTime_asSeconds(sfClock_getElapsedTime(clock));
+            return 84;
+        }
+        obj->entity->curr_time_top_offset = 0;
+        obj->entity->is_up = false;
+    }
+    return 0;
+}
+
+int zone_invalid(game_object *obj)
+{
+    change_move(obj, "down");
+    return 0;
+}
+
+void which_zone(map_t *map, game_object *obj, sfClock *clock)
+{
+    sfVector2i s_point = enemy_in_which_tile(obj);
+
+    if (map->str_map[s_point.y + 1][s_point.x] !=
+        is_brown(map->str_map[s_point.y + 1][s_point.x])
+        || map->str_map[s_point.y][s_point.x + 1] !=
+        is_brown(map->str_map[s_point.y][s_point.x + 1])
+        || map->str_map[s_point.y + 1][s_point.x + 1] !=
+        is_brown(map->str_map[s_point.y + 1][s_point.x + 1]))
+        zone_valid(map, obj, s_point, clock);
+    else
+        zone_invalid(obj);
+}
+
+void apply_findpath(map_t *map, list_t *enemies, sfClock *clock)
+{
+    while (enemies) {
+        which_zone(map, enemies->element, clock);
+        enemies = enemies->next;
+    }
+}
